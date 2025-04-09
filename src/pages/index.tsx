@@ -74,6 +74,8 @@ export default function Home() {
       >
         {loading ? 'Processing...' : 'Extract Company & Email'}
       </button>
+
+      {message && <p className="mt-4 hidden">{message}</p>}
     </main>
   );
 }
