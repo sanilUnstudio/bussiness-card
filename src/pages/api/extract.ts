@@ -1,4 +1,5 @@
-import formidable from "formidable";
+import type { NextApiRequest, NextApiResponse } from "next";
+import formidable, { Fields } from "formidable";
 import { readFile } from "fs/promises";
 import { parse } from "papaparse";
 import { OpenAI } from "openai";
@@ -18,6 +19,11 @@ type Row = {
   created_at: string;
   image_url: string;
   comment: string;
+};
+
+type ParsedFields = Fields;
+type ParsedFiles = {
+  file: formidable.File[];
 };
 
 async function extractDetailsFromImage(imageUrl: string) {
@@ -63,8 +69,7 @@ Do not include any extra text, explanation, markdown, or formatting. Only return
       company: parsed.company || "",
       email: parsed.email || "",
     };
-  } catch (err) {
-    console.error("JSON parse error — trying fallback...");
+  } catch {
     const companyMatch = raw.match(/"company"\s*:\s*"([^"]+)"/i);
     const emailMatch = raw.match(/"email"\s*:\s*"([^"]+)"/i);
     return {
@@ -74,15 +79,17 @@ Do not include any extra text, explanation, markdown, or formatting. Only return
   }
 }
 
-
-export default async function handler(req, res) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   const form = formidable({ multiples: false });
 
-  const data = await new Promise<{ fields: any; files: any }>(
+  const data: { fields: ParsedFields; files: ParsedFiles } = await new Promise(
     (resolve, reject) => {
       form.parse(req, (err, fields, files) => {
-        if (err) reject(err);
-        resolve({ fields, files });
+        if (err) return reject(err);
+        resolve({ fields, files: files as ParsedFiles });
       });
     }
   );

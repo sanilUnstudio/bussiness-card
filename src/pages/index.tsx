@@ -1,8 +1,5 @@
-
-
 import { useState } from 'react';
 import { X } from 'lucide-react';
-
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
@@ -48,34 +45,26 @@ export default function Home() {
       window.URL.revokeObjectURL(downloadUrl);
 
       setMessage('Done! Downloading enriched file...');
-    } catch (err: any) {
-      setMessage('Error: ' + err.message);
+    } catch (err) {
+      const error = err as Error;
+      setMessage('Error: ' + error.message);
     } finally {
       setLoading(false);
     }
   };
-
-  const clearFileInput = () => {
-    const input = document.getElementById('input-csv') as HTMLInputElement | null;
-    if (input) {
-      input.value = '';
-      setFile(null);
-    }
-  };
-
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-8 gap-4">
       <h1 className="text-2xl font-bold">Upload Business Card CSV</h1>
 
       <div onClick={() => {
-        const elem = document.getElementById('input-csv');
+        const elem = document.getElementById('input-csv') as HTMLInputElement | null;
         elem?.click();
       }} className='relative border-dotted border border-gray-300 p-2 h-[40vh] w-7/12 flex items-center justify-center rounded-lg'>
         <input type="file" id='input-csv' accept=".csv" onChange={handleFileChange} className='hidden' />
         {!file && <h1>Click here to upload csv file</h1>}
-       {file &&  <h1>{file.name }</h1>}
-       {file &&  <X className='absolute top-3 right-3'/>}
+        {file && <h1>{file.name}</h1>}
+        {file && <X className='absolute top-3 right-3' onClick={() => setFile(null)} />}
       </div>
 
       <button
@@ -85,6 +74,8 @@ export default function Home() {
       >
         {loading ? 'Processing...' : 'Extract Company & Email'}
       </button>
+
+      {message && <p className="mt-4">{message}</p>}
     </main>
   );
 }
