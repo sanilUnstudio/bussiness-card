@@ -37,19 +37,19 @@ async function extractDetailsFromImage(imageUrl: string) {
         content: [
           {
             type: "text",
-            text: `You are a helpful assistant that extracts information from business card images.
+            text: `You are a helpful assistant that extracts contact details from business card images.
 
-Please extract only:
-- Company name
-- Email address
+Please extract the following and return ONLY in this exact JSON format:
 
-Respond ONLY in this exact JSON format:
 {
   "company": "Company Name",
-  "email": "someone@example.com"
+  "email": "someone@example.com",
+  "phone": "+34 8493049",
+  "name": "Alain",
+  "designation": "Marketing Manager"
 }
 
-Do not include any extra text, explanation, markdown, or formatting. Only return valid JSON.`,
+Do not include any extra text or markdown. Only return valid JSON.`,
           },
           {
             type: "image_url",
@@ -68,13 +68,23 @@ Do not include any extra text, explanation, markdown, or formatting. Only return
     return {
       company: parsed.company || "",
       email: parsed.email || "",
+      phone: parsed.phone || "",
+      name: parsed.name || "",
+      designation: parsed.designation || "",
     };
   } catch {
+    // fallback regex
     const companyMatch = raw.match(/"company"\s*:\s*"([^"]+)"/i);
     const emailMatch = raw.match(/"email"\s*:\s*"([^"]+)"/i);
+    const phoneMatch = raw.match(/"phone"\s*:\s*"([^"]+)"/i);
+    const nameMatch = raw.match(/"name"\s*:\s*"([^"]+)"/i);
+    const designationMatch = raw.match(/"designation"\s*:\s*"([^"]+)"/i);
     return {
       company: companyMatch?.[1] || "",
       email: emailMatch?.[1] || "",
+      phone: phoneMatch?.[1] || "",
+      name: nameMatch?.[1] || "",
+      designation: designationMatch?.[1] || "",
     };
   }
 }
@@ -104,16 +114,21 @@ export default async function handler(
 
   const enriched = await Promise.all(
     parsed.data.map(async (row) => {
-      const { company, email } = await extractDetailsFromImage(row.image_url);
+      const { company, email, phone, name, designation } =
+        await extractDetailsFromImage(row.image_url);
       return {
         ...row,
         company,
         email,
+        phone,
+        name,
+        designation,
       };
     })
   );
 
-  const csvHeader = "id,created_at,image_url,comment,company,email\n";
+  const csvHeader =
+    "id,created_at,image_url,comment,company,email,phone,name,designation\n";
   const csvRows = enriched
     .map((row) =>
       [
@@ -123,6 +138,9 @@ export default async function handler(
         row.comment,
         row.company,
         row.email,
+        row.phone,
+        row.name,
+        row.designation,
       ]
         .map((v) => `"${v}"`)
         .join(",")
